@@ -14,15 +14,21 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.widget.Toast;
 public class MainActivity extends AppCompatActivity {
-    private String shareURL;
+    private int shareURL;
+    public String[] title;
+    public String[] content;
+    public String prb;
+
     private WebView mWebView;
+    private WebView noti ;
+
     private BluetoothManager bluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
+
     private static final int REQUEST_ENABLE_BT = 1;
-    private Handler mHandler;
     private static final long SCAN_PERIOD = 10000; //10 seconds 搜尋頻率 1S:1000
-    public String title;
-    public String content;
+    private Handler mHandler;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -31,6 +37,12 @@ public class MainActivity extends AppCompatActivity {
         mWebView.loadUrl("http://140.128.80.192:8001/home");
         mWebView.getSettings().setJavaScriptEnabled(true);
         //瀏覽介面
+
+        noti=(WebView)findViewById(R.id.noti);
+        noti.loadUrl("http://140.128.80.192:8001/noti");
+        noti.getSettings().setJavaScriptEnabled(true);
+        //推播接收媒介
+
         mHandler = new Handler();
         bluetoothManager = (BluetoothManager)getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
@@ -49,22 +61,27 @@ public class MainActivity extends AppCompatActivity {
                 scanLeDevice(true);
             }
     };
+
     private class JsOperation  //從網頁取值
     {
         @JavascriptInterface
         public void responseID(String result)
         {
-            shareURL = result;
+            shareURL = Integer.parseInt(result);
             //儲存 數量
         }
-        public void responseTitle(String result)
+        public void responseTitle(String[] result)
         {
-            shareURL = result;
+            for(int a=1; a<=shareURL ;a++){
+                title[a]=result[a];
+            }
             //儲存 標題
         }
-        public void responssContent(String result)
+        public void responssContent(String[] result)
         {
-            shareURL = result;
+            for(int a=1; a<=shareURL ;a++){
+                content[a]=result[a];
+            }
             //儲存 內文
         }
     }
@@ -87,7 +104,6 @@ public class MainActivity extends AppCompatActivity {
             mBluetoothAdapter.stopLeScan(mLeScanCallback);
         }
     }
-
     private BluetoothAdapter.LeScanCallback mLeScanCallback =
             new BluetoothAdapter.LeScanCallback() {
                 @Override
@@ -95,17 +111,17 @@ public class MainActivity extends AppCompatActivity {
                                      final byte[] scanRecord) {
                     // 搜尋回饋
                     NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE); // 取得系統的通知服務
-                    notificationManager.cancelAll();
-                    mWebView.addJavascriptInterface(new JsOperation(), device.getName());//接收通知數量
-                    int notifyID = 1; // 通知的識別號碼
-                    Notification notification = new Notification.Builder(getApplicationContext()).setSmallIcon(R.drawable.test).setContentTitle(shareURL).setContentText(shareURL).build(); // 建立通知
-                    notificationManager.notify(notifyID, notification); // 發送通知
-                    // for (int a = 0 to  notifyID){
-                    // mWebView.addJavascriptInterface(new JsOperation(), device.getName());//接收通知title
-                    // mWebView.addJavascriptInterface(new JsOperation(), device.getName());//接收通知內容
-                    // Notification notification = new Notification.Builder(getApplicationContext()).setSmallIcon(R.drawable.test).setContentTitle(title).setContentText(content).build()
-                    // notificationManager.notify(a, notification); // 發送通知
-                    // }
+                    if(device.getName()==prb){
+                        notificationManager.cancelAll();//清理舊的通知資料
+                        noti.addJavascriptInterface(new JsOperation(), device.getName());//接收通知數量
+                        int input=shareURL;
+                        for (int a=1 ;a<=input ;a++){
+                            int notifyID = a; // 通知的識別號碼
+                            Notification notification = new Notification.Builder(getApplicationContext()).setSmallIcon(R.drawable.test).setContentTitle(title[a]).setContentText(content[a]).build(); // 建立通知
+                            notificationManager.notify(notifyID, notification); // 發送通知
+                        }
+                        prb=device.getName();
+                    }
                 }
             };
 
