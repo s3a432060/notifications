@@ -1,4 +1,5 @@
 package com.example.skill573.notification;
+import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.bluetooth.BluetoothAdapter;
@@ -8,41 +9,75 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Handler;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 public class MainActivity extends AppCompatActivity {
-    private int shareURL;
-    public String[] title;
-    public String[] content;
     public String prb;
-
+    //推播儲存變數
     private WebView mWebView;
     private WebView noti ;
-
+    //連接網頁介質
     private BluetoothManager bluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
-
+    //連結藍芽介質
     private static final int REQUEST_ENABLE_BT = 1;
     private static final long SCAN_PERIOD = 10000; //10 seconds 搜尋頻率 1S:1000
     private Handler mHandler;
+    private Button but;//虛擬機測試用物件
+    private TextView tv;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        prb="test1";
+        ActionBar actionBar = getSupportActionBar();
+        actionBar.hide();
+
         mWebView = (WebView) findViewById(R.id.wv);
-        mWebView.loadUrl("http://140.128.80.192:8001/home");
         mWebView.getSettings().setJavaScriptEnabled(true);
+        mWebView.loadUrl("http://140.128.80.192:8001/noti");
+        mWebView.setWebViewClient(new WebViewClient(){
+            @Override
+            public void onPageFinished(WebView view, String url){
+                mWebView.loadUrl("javascript:test.test()");
+            }
+        });
+        mWebView.addJavascriptInterface(new JsOperation(), "test1");
         //瀏覽介面
-
         noti=(WebView)findViewById(R.id.noti);
-        noti.loadUrl("http://140.128.80.192:8001/noti");
         noti.getSettings().setJavaScriptEnabled(true);
-        //推播接收媒介
+        noti.loadUrl("http://140.128.80.192:8001/noti");
+        noti.setWebViewClient(new WebViewClient(){
+            @Override
+            public void onPageFinished(WebView view, String url){
+                noti.loadUrl("javascript:test.test()");
+            }
+        });
 
+        but =(Button)findViewById(R.id.butt);//虛擬機測試用方法
+        but.setOnClickListener(new Button.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                ; //主動觸發網頁溝通
+                if(prb=="test1")
+                    prb="test2";
+                else
+                    prb="test1";
+                //接收通知數量
+            }});
+        tv=(TextView)findViewById(R.id.TV);
+/*
+        //推播接收媒介
         mHandler = new Handler();
         bluetoothManager = (BluetoothManager)getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
@@ -60,31 +95,22 @@ public class MainActivity extends AppCompatActivity {
                 else {
                 scanLeDevice(true);
             }
+            */
     };
-
     private class JsOperation  //從網頁取值
     {
         @JavascriptInterface
-        public void responseID(String result)
+        public void responseID(String ID,String title,String context,int number)
         {
-            shareURL = Integer.parseInt(result);
-            //儲存 數量
-        }
-        public void responseTitle(String[] result)
-        {
-            for(int a=1; a<=shareURL ;a++){
-                title[a]=result[a];
-            }
-            //儲存 標題
-        }
-        public void responssContent(String[] result)
-        {
-            for(int a=1; a<=shareURL ;a++){
-                content[a]=result[a];
-            }
-            //儲存 內文
+            NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE); // 取得系統的通知服務
+            notificationManager.cancelAll();//清理舊的通知資料
+            int notifyID = number; // 通知的識別號碼
+            Notification notification = new Notification.Builder(getApplicationContext()).setSmallIcon(R.drawable.test).setContentTitle(title).setContentText(context).build(); // 建立通知
+            notificationManager.notify(notifyID, notification); // 發送通知
         }
     }
+    }
+    /*
     @Override
     protected void onPause() {
         super.onPause();
@@ -124,5 +150,5 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             };
+*/
 
-}
